@@ -106,7 +106,7 @@ class NccuCourseCrawler
           name = datas_2[0] && datas_2[0].text.strip
           url = !datas_2.css('a').empty? && "#{@query_url}#{datas_2.css('a')[0][:href]}"
 
-          @courses << {
+          course = {
             year: @year,
             term: @term,
             name: name,
@@ -144,8 +144,13 @@ class NccuCourseCrawler
             location_8: course_locations[7],
             location_9: course_locations[8],
           }
+
+          @after_each_proc.call(course: course) if @after_each_proc
+
+          @courses << course
         end # each rows do
 
+        # go through pages...
         if doc.css('#nextLB')[0][:href].nil?
           break
         else
@@ -158,34 +163,9 @@ class NccuCourseCrawler
           }), cookies: @cookies
         end
       end # loop do end
-
-
-      # select institude and refresh
-      # r = RestClient.post @query_url, post_hash.merge(get_view_state).merge({
-      #   "__EVENTTARGET" => 't_colLB',
-      #   "t_colLB" => inst
-      # })
-      # doc = Nokogiri::HTML(r.force_encoding(r.encoding))
-      # gde_h = Hash[doc.css('select[name="gde_tpeLB"] option:not(:first-child)').map{|opt| [opt[:value], opt.text]}]
-      # gde_h.keys.each do |gde|
-      #   # select grade and refresh
-      #   doc = Nokogiri::HTML(r.force_encoding(r.encoding))
-      #   dep_h = Hash[doc.css('select[name="t_depLB"] option:not(:first-child)').map{|opt| [opt[:value], opt.text.split('/')[0].strip]}]
-
-      # end
     end
 
-    # yyssDDL:1032
-    # coursenameTB:
-    # instructorTB:
-    # t_colLB:0
-    # gde_tpeLB:0
-    # t_depLB: 0
-    # __EVENTTARGET:t_colLB
-    # __EVENTTARGET:gde_tpeLB
-    # __EVENTTARGET:searchA
-
-    File.write('courses.json', JSON.pretty_generate(@courses))
+    @courses
   end
 
   def current_year
@@ -196,7 +176,7 @@ class NccuCourseCrawler
     (Time.now.month.between?(2, 7) ? 2 : 1)
   end
 
-  def get_view_state(doc: doc)
+  def get_view_state(doc: nil)
     if doc
       Hash[doc.css('input[type="hidden"]').map {|d| [d[:name], d[:value]]}]
     else
@@ -205,5 +185,5 @@ class NccuCourseCrawler
   end
 end
 
-cc = NccuCourseCrawler.new(year: 2014, term: 1)
-cc.courses
+# cc = NccuCourseCrawler.new(year: 2014, term: 1)
+# File.write('courses.json', JSON.pretty_generate(cc.courses))

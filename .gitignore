@@ -1,2 +1,4 @@
 deprecated
-courses.json
+*.json
+
+.env
