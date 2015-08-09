@@ -3,6 +3,9 @@ require 'iconv'
 require 'json'
 require 'pry'
 
+require 'thread'
+require 'thwait'
+
 class NccuCourseCrawler
   include CrawlerRocks::DSL
 
@@ -46,6 +49,8 @@ class NccuCourseCrawler
 
   def courses
     @courses = []
+
+    @threads = []
 
     visit @query_url
 
@@ -95,7 +100,7 @@ class NccuCourseCrawler
           periods_raws.scan(/([#{DAYS.keys.join}])([#{PERIODS.keys.join}]+)/).each_with_index do |m, i|
             m[1].split('').each do |p|
               course_days << DAYS[m[0]]
-              course_periods << p.to_i
+              course_periods << PERIODS[p]
               course_locations << (locations && !locations.empty? && locations[i] && !locations[i].empty? && locations[i][0]|| datas[6].text.strip)
             end
           end
@@ -146,7 +151,13 @@ class NccuCourseCrawler
             location_9: course_locations[8],
           }
 
-          @after_each_proc.call(course: course) if @after_each_proc
+          sleep(1) until (
+            @threads.delete_if { |t| !t.status };  # remove dead (ended) threads
+            @threads.count < (ENV['MAX_THREADS'] || 20)
+          )
+          @threads << Thread.new do
+            @after_each_proc.call(course: course) if @after_each_proc
+          end
 
           @courses << course
         end # each rows do
@@ -165,6 +176,8 @@ class NccuCourseCrawler
         end
       end # loop do end
     end
+
+    ThreadsWait.all_waits(*@threads)
 
     @courses
   end
