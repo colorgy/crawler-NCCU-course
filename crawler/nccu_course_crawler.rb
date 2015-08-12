@@ -88,7 +88,8 @@ class NccuCourseCrawler
         (0..rows.count-1).step(2).each do |i|
           datas = rows[i].css('td')
 
-          code = datas[2] && "#{@year}-#{@term}-#{datas[2].text.strip}"
+          general_code = datas[2] && datas[2].text.strip
+          code = datas[2] && "#{@year}-#{@term}-#{general_code}"
           lecturer = datas[3] && datas[3].text.split('/')[0].strip
           credits = datas[4] && datas[4].text.to_i
 
@@ -117,6 +118,7 @@ class NccuCourseCrawler
             term: @term,
             name: name,
             code: code,
+            general_code: general_code,
             lecturer: lecturer,
             credits: credits,
             department: department,
